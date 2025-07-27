@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lotofácil - Jogos Inteligentes</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .video-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      min-width: 100%;
+      min-height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      filter: brightness(0.4);
+    }
+
+    .overlay {
+      position: relative;
+      z-index: 1;
+      background-color: rgba(0, 0, 0, 0.6);
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      color: white;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #fff;
+      text-shadow: 2px 2px 5px #000;
+    }
+
+    .ultimo-resultado {
+      font-size: 18px;
+      color: #00ffcc;
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .jogos-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      max-width: 1200px;
+    }
+
+    .jogo {
+      background-color: rgba(255, 255, 255, 0.9);
+      border: 2px solid #333;
+      border-radius: 12px;
+      padding: 24px;
+      width: 260px;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #2c3e50;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .numeros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .bola {
+      width: 32px;
+      height: 32px;
+      background-color: #6516a7;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .stats {
+      font-size: 14px;
+      color: #444;
+      margin-top: 5px;
+    }
+
+    @media (max-width: 600px) {
+      .jogo {
+        width: 90%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <video autoplay muted loop class="video-bg">
+    <source src="./img/Standard_Mode_falling_in_slow_motion.mp4" type="video/mp4">
+    Seu navegador não suporta vídeo HTML5.
+  </video>
+
+  <div class="overlay">
+    <h1>Jogos Inteligentes Lotofácil</h1>
+    <div class="ultimo-resultado">
+      Último Resultado: <span id="resultadoLoto">01 - 02 - 04 - 05 - 07 - 08 - 10 - 11 - 13 - 15 - 18 - 20 - 21 - 24 - 25</span>
+    </div>
+    <div class="jogos-container" id="jogosContainer"></div>
+  </div>
+
+  <script>
+  const ultimoResultado = [1, 2, 4, 5, 7, 8, 10, 11, 13, 15, 18, 20, 21, 24, 25];
+
+  function gerarJogoInteligente() {
+    const jogo = new Set();
+    const repeticoes = Math.floor(Math.random() * 2) + 9;
+    const copiaUltimo = [...ultimoResultado];
+    while (jogo.size < repeticoes) {
+      const index = Math.floor(Math.random() * copiaUltimo.length);
+      jogo.add(copiaUltimo.splice(index, 1)[0]);
+    }
+    while (jogo.size < 15) {
+      const n = Math.floor(Math.random() * 25) + 1;
+      if (!jogo.has(n)) jogo.add(n);
+    }
+    const numeros = Array.from(jogo).sort((a, b) => a - b);
+    const pares = numeros.filter(n => n % 2 === 0).length;
+    if (pares < 6 || pares > 9) return gerarJogoInteligente();
+    let maxSeq = 1, seq = 1;
+    for (let i = 1; i < numeros.length; i++) {
+      if (numeros[i] === numeros[i - 1] + 1) seq++;
+      else seq = 1;
+      if (seq > maxSeq) maxSeq = seq;
+    }
+    if (maxSeq > 4) return gerarJogoInteligente();
+    return numeros;
+  }
+
+  function calcularForcaJogo(repetidas, pares, soma) {
+    let score = 0;
+    if (repetidas >= 9 && repetidas <= 11) score += 40;
+    else if (repetidas >= 7 && repetidas <= 12) score += 25;
+    else score += 10;
+
+    if (pares >= 6 && pares <= 9) score += 30;
+    else score += 10;
+
+    if (soma >= 180 && soma <= 220) score += 30;
+    else score += 15;
+
+    return score;
+  }
+
+  function exibirJogos(jogos) {
+    const container = document.getElementById('jogosContainer');
+    container.innerHTML = '';
+    jogos.forEach(jogo => {
+      const pares = jogo.filter(n => n % 2 === 0).length;
+      const impares = 15 - pares;
+      const soma = jogo.reduce((a, b) => a + b, 0);
+      const repetidas = jogo.filter(n => ultimoResultado.includes(n)).length;
+      const forca = calcularForcaJogo(repetidas, pares, soma);
+      const probabilidade = (1 / 3268760 * 100).toFixed(8);
+
+      const div = document.createElement('div');
+      div.className = 'jogo';
+
+      const numerosDiv = document.createElement('div');
+      numerosDiv.className = 'numeros';
+      jogo.forEach(n => {
+        const bola = document.createElement('div');
+        bola.className = 'bola';
+        bola.textContent = n.toString().padStart(2, '0');
+        numerosDiv.appendChild(bola);
+      });
+
+      const statsDiv = document.createElement('div');
+      statsDiv.className = 'stats';
+      statsDiv.innerHTML = `
+        P: ${pares} | I: ${impares} | Σ: ${soma}<br>
+        Repetidas: ${repetidas} | Prob: ${probabilidade}%<br>
+        Estimativa de Força: ${forca}%
+      `;
+
+      div.appendChild(numerosDiv);
+      div.appendChild(statsDiv);
+      container.appendChild(div);
+    });
+  }
+
+  function gerarJogos() {
+    const jogos = [];
+    for (let i = 0; i < 10; i++) {
+      jogos.push(gerarJogoInteligente());
+    }
+    localStorage.setItem('jogosLotofacil', JSON.stringify(jogos));
+    localStorage.setItem('ultimoResultadoLotofacil', JSON.stringify(ultimoResultado));
+    exibirJogos(jogos);
+  }
+
+  function carregarOuGerarJogos() {
+    const salvo = localStorage.getItem('jogosLotofacil');
+    const resultadoSalvo = localStorage.getItem('ultimoResultadoLotofacil');
+
+    if (salvo && resultadoSalvo) {
+      const jogosSalvos = JSON.parse(salvo);
+      const resultadoAnterior = JSON.parse(resultadoSalvo);
+
+      const mesmoResultado = JSON.stringify(resultadoAnterior) === JSON.stringify(ultimoResultado);
+
+      if (mesmoResultado) {
+        exibirJogos(jogosSalvos);
+        return;
+      }
+    }
+
+    gerarJogos(); // novo resultado ou nenhum jogo salvo
+  }
+
+  // Executa ao carregar
+  carregarOuGerarJogos();
+</script>
+
