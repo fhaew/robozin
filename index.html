@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lotofácil - Jogos Inteligentes</title>
+  <title>Lotofácil -Jogos Inteligentes</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -51,12 +51,44 @@
       margin-bottom: 20px;
     }
 
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    .controls input {
+      width: 60px;
+      padding: 5px;
+      border-radius: 5px;
+      border: none;
+      text-align: center;
+    }
+
+    .controls button {
+      padding: 6px 12px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-gerar {
+      background-color: #00cc99;
+      color: white;
+    }
+
+    .btn-ocultar {
+      background-color: #cc3300;
+      color: white;
+    }
+
     .jogos-container {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 15px;
       max-width: 1200px;
+      transition: all 0.3s ease-in-out;
     }
 
     .jogo {
@@ -65,7 +97,6 @@
       border-radius: 12px;
       padding: 24px;
       width: 260px;
-      height: auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -107,7 +138,6 @@
     @media (max-width: 600px) {
       .jogo {
         width: 90%;
-        height: auto;
       }
     }
   </style>
@@ -120,122 +150,143 @@
 
   <div class="overlay">
     <h1>Jogos Inteligentes Lotofácil</h1>
+
     <div class="ultimo-resultado">
       Último Resultado: <span id="resultadoLoto">01 - 02 - 04 - 05 - 07 - 08 - 10 - 11 - 13 - 15 - 18 - 20 - 21 - 24 - 25</span>
     </div>
+
+    <div class="controls">
+      <label for="quantidadeJogos">Qtd de jogos:</label>
+      <input type="number" id="quantidadeJogos" value="10" min="1" max="100">
+      <button class="btn-gerar" onclick="gerarJogosCustom()">Gerar Jogos</button>
+      <button class="btn-ocultar" onclick="alternarPrevisoes()">Ocultar Previsões</button>
+    </div>
+
     <div class="jogos-container" id="jogosContainer"></div>
   </div>
 
   <script>
-  const ultimoResultado = [1, 2, 4, 5, 7, 8, 10, 11, 13, 15, 18, 20, 21, 24, 25];
+    const ultimoResultado = [1, 2, 4, 5, 7, 8, 10, 11, 13, 15, 18, 20, 21, 24, 25];
 
-  function gerarJogoInteligente() {
-    const jogo = new Set();
-    const repeticoes = Math.floor(Math.random() * 2) + 9;
-    const copiaUltimo = [...ultimoResultado];
-    while (jogo.size < repeticoes) {
-      const index = Math.floor(Math.random() * copiaUltimo.length);
-      jogo.add(copiaUltimo.splice(index, 1)[0]);
+    function gerarJogoInteligente() {
+      const jogo = new Set();
+      const repeticoes = Math.floor(Math.random() * 2) + 9;
+      const copiaUltimo = [...ultimoResultado];
+      while (jogo.size < repeticoes) {
+        const index = Math.floor(Math.random() * copiaUltimo.length);
+        jogo.add(copiaUltimo.splice(index, 1)[0]);
+      }
+      while (jogo.size < 15) {
+        const n = Math.floor(Math.random() * 25) + 1;
+        if (!jogo.has(n)) jogo.add(n);
+      }
+      const numeros = Array.from(jogo).sort((a, b) => a - b);
+      const pares = numeros.filter(n => n % 2 === 0).length;
+      if (pares < 6 || pares > 9) return gerarJogoInteligente();
+      let maxSeq = 1, seq = 1;
+      for (let i = 1; i < numeros.length; i++) {
+        if (numeros[i] === numeros[i - 1] + 1) seq++;
+        else seq = 1;
+        if (seq > maxSeq) maxSeq = seq;
+      }
+      if (maxSeq > 4) return gerarJogoInteligente();
+      return numeros;
     }
-    while (jogo.size < 15) {
-      const n = Math.floor(Math.random() * 25) + 1;
-      if (!jogo.has(n)) jogo.add(n);
+
+    function calcularForcaJogo(repetidas, pares, soma) {
+      let score = 0;
+      if (repetidas >= 9 && repetidas <= 11) score += 40;
+      else if (repetidas >= 7 && repetidas <= 12) score += 25;
+      else score += 10;
+
+      if (pares >= 6 && pares <= 9) score += 30;
+      else score += 10;
+
+      if (soma >= 180 && soma <= 220) score += 30;
+      else score += 15;
+
+      return score;
     }
-    const numeros = Array.from(jogo).sort((a, b) => a - b);
-    const pares = numeros.filter(n => n % 2 === 0).length;
-    if (pares < 6 || pares > 9) return gerarJogoInteligente();
-    let maxSeq = 1, seq = 1;
-    for (let i = 1; i < numeros.length; i++) {
-      if (numeros[i] === numeros[i - 1] + 1) seq++;
-      else seq = 1;
-      if (seq > maxSeq) maxSeq = seq;
-    }
-    if (maxSeq > 4) return gerarJogoInteligente();
-    return numeros;
-  }
 
-  function calcularForcaJogo(repetidas, pares, soma) {
-    let score = 0;
-    if (repetidas >= 9 && repetidas <= 11) score += 40;
-    else if (repetidas >= 7 && repetidas <= 12) score += 25;
-    else score += 10;
+    function exibirJogos(jogos) {
+      const container = document.getElementById('jogosContainer');
+      container.innerHTML = '';
+      jogos.forEach(jogo => {
+        const pares = jogo.filter(n => n % 2 === 0).length;
+        const impares = 15 - pares;
+        const soma = jogo.reduce((a, b) => a + b, 0);
+        const repetidas = jogo.filter(n => ultimoResultado.includes(n)).length;
+        const forca = calcularForcaJogo(repetidas, pares, soma);
+        const probabilidade = (1 / 3268760 * 100).toFixed(8);
 
-    if (pares >= 6 && pares <= 9) score += 30;
-    else score += 10;
+        const div = document.createElement('div');
+        div.className = 'jogo';
 
-    if (soma >= 180 && soma <= 220) score += 30;
-    else score += 15;
+        const numerosDiv = document.createElement('div');
+        numerosDiv.className = 'numeros';
+        jogo.forEach(n => {
+          const bola = document.createElement('div');
+          bola.className = 'bola';
+          bola.textContent = n.toString().padStart(2, '0');
+          numerosDiv.appendChild(bola);
+        });
 
-    return score;
-  }
+        const statsDiv = document.createElement('div');
+        statsDiv.className = 'stats';
+        statsDiv.innerHTML = `
+          P: ${pares} | I: ${impares} | Σ: ${soma}<br>
+          Repetidas: ${repetidas} | Prob: ${probabilidade}%<br>
+          Estimativa de Força: ${forca}%
+        `;
 
-  function exibirJogos(jogos) {
-    const container = document.getElementById('jogosContainer');
-    container.innerHTML = '';
-    jogos.forEach(jogo => {
-      const pares = jogo.filter(n => n % 2 === 0).length;
-      const impares = 15 - pares;
-      const soma = jogo.reduce((a, b) => a + b, 0);
-      const repetidas = jogo.filter(n => ultimoResultado.includes(n)).length;
-      const forca = calcularForcaJogo(repetidas, pares, soma);
-      const probabilidade = (1 / 3268760 * 100).toFixed(8);
-
-      const div = document.createElement('div');
-      div.className = 'jogo';
-
-      const numerosDiv = document.createElement('div');
-      numerosDiv.className = 'numeros';
-      jogo.forEach(n => {
-        const bola = document.createElement('div');
-        bola.className = 'bola';
-        bola.textContent = n.toString().padStart(2, '0');
-        numerosDiv.appendChild(bola);
+        div.appendChild(numerosDiv);
+        div.appendChild(statsDiv);
+        container.appendChild(div);
       });
-
-      const statsDiv = document.createElement('div');
-      statsDiv.className = 'stats';
-      statsDiv.innerHTML = `
-        P: ${pares} | I: ${impares} | Σ: ${soma}<br>
-        Repetidas: ${repetidas} | Prob: ${probabilidade}%<br>
-        Estimativa de Força: ${forca}%
-      `;
-
-      div.appendChild(numerosDiv);
-      div.appendChild(statsDiv);
-      container.appendChild(div);
-    });
-  }
-
-  function gerarJogos() {
-    const jogos = [];
-    for (let i = 0; i < 10; i++) {
-      jogos.push(gerarJogoInteligente());
     }
-    localStorage.setItem('jogosLotofacil', JSON.stringify(jogos));
-    localStorage.setItem('ultimoResultadoLotofacil', JSON.stringify(ultimoResultado));
-    exibirJogos(jogos);
-  }
 
-  function carregarOuGerarJogos() {
-    const salvo = localStorage.getItem('jogosLotofacil');
-    const resultadoSalvo = localStorage.getItem('ultimoResultadoLotofacil');
+    function gerarJogosCustom() {
+      const qtd = parseInt(document.getElementById('quantidadeJogos').value) || 10;
+      const jogos = [];
+      for (let i = 0; i < qtd; i++) {
+        jogos.push(gerarJogoInteligente());
+      }
+      localStorage.setItem('jogosLotofacil', JSON.stringify(jogos));
+      localStorage.setItem('ultimoResultadoLotofacil', JSON.stringify(ultimoResultado));
+      exibirJogos(jogos);
+    }
 
-    if (salvo && resultadoSalvo) {
-      const jogosSalvos = JSON.parse(salvo);
-      const resultadoAnterior = JSON.parse(resultadoSalvo);
+    function carregarOuGerarJogos() {
+      const salvo = localStorage.getItem('jogosLotofacil');
+      const resultadoSalvo = localStorage.getItem('ultimoResultadoLotofacil');
 
-      const mesmoResultado = JSON.stringify(resultadoAnterior) === JSON.stringify(ultimoResultado);
+      if (salvo && resultadoSalvo) {
+        const jogosSalvos = JSON.parse(salvo);
+        const resultadoAnterior = JSON.parse(resultadoSalvo);
+        const mesmoResultado = JSON.stringify(resultadoAnterior) === JSON.stringify(ultimoResultado);
 
-      if (mesmoResultado) {
-        exibirJogos(jogosSalvos);
-        return;
+        if (mesmoResultado) {
+          exibirJogos(jogosSalvos);
+          return;
+        }
+      }
+
+      gerarJogosCustom(); // novo resultado ou nenhum jogo salvo
+    }
+
+    function alternarPrevisoes() {
+      const container = document.getElementById('jogosContainer');
+      const botao = document.querySelector('.btn-ocultar');
+      if (container.style.display === 'none') {
+        container.style.display = 'flex';
+        botao.textContent = 'Ocultar Previsões';
+      } else {
+        container.style.display = 'none';
+        botao.textContent = 'Mostrar Previsões';
       }
     }
 
-    gerarJogos(); // novo resultado ou nenhum jogo salvo
-  }
-
-  // Executa ao carregar
-  carregarOuGerarJogos();
-</script>
-
+    carregarOuGerarJogos();
+  </script>
+</body>
+</html>
